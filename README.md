@@ -42,7 +42,7 @@ The scheduler reads each enabled profile's own `search_interval_minutes`. At the
 ## 1. Get the project
 
 ```powershell
-git clone <repository-url>
+git clone https://github.com/tboydev-coder/Job_Find_Me.git
 cd Job-Find-Me
 ```
 
