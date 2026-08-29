@@ -56,6 +56,35 @@ class MatcherTests(unittest.TestCase):
         self.assertEqual(analysis.overall_score, 75)
         self.assertEqual(completions.calls, 2)
 
+    def test_missing_none_nan_and_fractional_scale_are_not_reinterpreted(self) -> None:
+        base = {
+            "overall_score": 82.5,
+            "matched_skills": [],
+            "missing_skills": [],
+            "skills_score": 80,
+            "experience_score": 80,
+            "title_score": 80,
+            "education_score": 80,
+            "location_score": 80,
+            "explanation": "Test.",
+        }
+        missing = dict(base)
+        missing.pop("overall_score")
+        none_score = {**base, "overall_score": None}
+        nan_score = json.dumps(base).replace("82.5", "NaN", 1)
+        completions = FakeCompletions(
+            [json.dumps(missing), json.dumps(none_score), nan_score]
+        )
+        client = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+        with self.assertRaises(RuntimeError):
+            analyze_job_match({}, {}, groq_client=client, max_attempts=3)
+
+        fractional = {**base, "overall_score": 0.825}
+        completions = FakeCompletions([json.dumps(fractional)])
+        client = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+        analysis = analyze_job_match({}, {}, groq_client=client)
+        self.assertEqual(calculate_match_score(analysis), 0.82)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

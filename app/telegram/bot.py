@@ -244,7 +244,6 @@ async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             await update.message.reply_text("❌ Profile not found. Send /start first.")
             return
         profile_id = profile.id
-        chat_id = update.effective_chat.id
     finally:
         db.close()
 
@@ -252,16 +251,7 @@ async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await update.message.reply_text("🔎 Starting a search cycle…")
 
     async def run_and_report() -> None:
-        stats = await runner.run_profile(profile_id, require_enabled=False)
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text=(
-                "✅ Search cycle complete.\n"
-                f"Valid jobs: {stats.discovered}\n"
-                f"Evaluated: {stats.matched}\n"
-                f"Notifications: {stats.notified}"
-            ),
-        )
+        await runner.run_profile(profile_id, require_enabled=False)
 
     context.application.create_task(run_and_report())
 

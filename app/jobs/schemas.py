@@ -6,27 +6,27 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 class JobData(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
-    source: str
+    source: str = Field(min_length=1, max_length=100)
 
-    external_id: str | None = None
+    external_id: str | None = Field(default=None, max_length=255)
 
     title: str = Field(min_length=2, max_length=500)
 
-    company: str | None = None
+    company: str | None = Field(default=None, max_length=300)
 
-    location: str | None = None
+    location: str | None = Field(default=None, max_length=500)
 
     description: str | None = None
 
     requirements: str | None = None
 
-    salary: str | None = None
+    salary: str | None = Field(default=None, max_length=300)
 
-    employment_type: str | None = None
+    employment_type: str | None = Field(default=None, max_length=100)
 
     apply_url: str = Field(min_length=8, max_length=1000)
 
-    source_url: str | None = None
+    source_url: str | None = Field(default=None, max_length=1000)
 
     posted_at: datetime | None = None
 

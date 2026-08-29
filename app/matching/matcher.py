@@ -4,6 +4,7 @@ from typing import Any
 
 from app.ai.groq_client import get_groq_client
 from app.config import Settings
+from app.logging_utils import safe_exception_text, safe_response_excerpt
 
 from .schemas import JobMatchAnalysis
 
@@ -76,6 +77,7 @@ Return your analysis using the required JSON structure.
     client = groq_client or get_groq_client()
     model = Settings.from_environment().groq_model
     last_error: Exception | None = None
+    last_content: object = None
 
     for attempt in range(1, max_attempts + 1):
         try:
@@ -181,6 +183,7 @@ Return your analysis using the required JSON structure.
     )
 
             content = response.choices[0].message.content
+            last_content = content
             if not content:
                 raise ValueError("Groq returned an empty match response")
 
@@ -189,13 +192,23 @@ Return your analysis using the required JSON structure.
         except Exception as error:
             last_error = error
             logger.warning(
-                "Invalid Groq match response (attempt %s/%s): %s",
-                attempt,
-                max_attempts,
-                error,
+                "MATCH_MODEL_ERROR %s",
+                json.dumps(
+                    {
+                        "attempt": attempt,
+                        "max_attempts": max_attempts,
+                        "error": safe_exception_text(error),
+                        "response_excerpt": safe_response_excerpt(last_content),
+                    },
+                    ensure_ascii=False,
+                    default=str,
+                ),
             )
 
-    raise RuntimeError("Groq returned an invalid job match response") from last_error
+    raise RuntimeError(
+        "Groq returned an invalid job match response after "
+        f"{max_attempts} attempt(s): {safe_exception_text(last_error)}"
+    ) from last_error
 
 
 def calculate_match_score(

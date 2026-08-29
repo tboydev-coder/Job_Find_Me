@@ -9,10 +9,11 @@ class QueryBuilderTests(unittest.TestCase):
             target_titles="Python Developer, Backend Developer",
             locations="Nigeria, Remote",
             remote_preference="preferred",
+            max_job_age_hours=24,
         )
-        self.assertIn('"Python Developer" "Nigeria" jobs', queries)
-        self.assertIn('"Backend Developer" "Remote" jobs', queries)
-        self.assertIn('"Python Developer" remote jobs', queries)
+        self.assertIn('"Python Developer" "Nigeria" jobs posted today', queries)
+        self.assertIn('"Backend Developer" "Remote" jobs posted today', queries)
+        self.assertIn('"Python Developer" remote jobs posted today', queries)
         self.assertEqual(len(queries), len(set(queries)))
 
 

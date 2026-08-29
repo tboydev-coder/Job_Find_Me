@@ -39,9 +39,14 @@ class JobDiscoveryPipeline:
         db: Session,
         query: str,
         limit: int = 10,
+        time_range: str | None = None,
     ) -> list[Job]:
-        logger.info("Search query: %s", query)
-        results = await self.search_provider.search(query=query, limit=limit)
+        logger.info("Search query: %s (time_range=%s)", query, time_range)
+        results = await self.search_provider.search(
+            query=query,
+            limit=limit,
+            time_range=time_range,
+        )
         logger.info("Search results: %s", len(results))
 
         jobs: list[Job] = []
@@ -96,13 +101,16 @@ class JobDiscoveryPipeline:
         target_titles: str,
         locations: str | None = None,
         remote_preference: str | None = None,
+        max_job_age_hours: int | None = None,
         limit_per_query: int = 5,
     ) -> list[Job]:
         queries = build_job_queries(
             target_titles=target_titles,
             locations=locations,
             remote_preference=remote_preference,
+            max_job_age_hours=max_job_age_hours,
         )
+        time_range = _tavily_time_range(max_job_age_hours)
         all_jobs: list[Job] = []
         seen_ids: set[int] = set()
         for query in queries:
@@ -111,6 +119,7 @@ class JobDiscoveryPipeline:
                     db=db,
                     query=query,
                     limit=limit_per_query,
+                    time_range=time_range,
                 )
                 for job in jobs:
                     if job.id not in seen_ids:
@@ -121,3 +130,17 @@ class JobDiscoveryPipeline:
                 logger.exception("Search failed for query: %s", query)
         logger.info("Valid unique jobs discovered: %s", len(all_jobs))
         return all_jobs
+
+
+def _tavily_time_range(max_job_age_hours: int | None) -> str | None:
+    if max_job_age_hours is None:
+        return None
+    if max_job_age_hours <= 24:
+        return "day"
+    if max_job_age_hours <= 24 * 7:
+        return "week"
+    if max_job_age_hours <= 24 * 31:
+        return "month"
+    if max_job_age_hours <= 24 * 366:
+        return "year"
+    return None

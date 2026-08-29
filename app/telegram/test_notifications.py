@@ -12,7 +12,7 @@ from sqlalchemy.orm import sessionmaker
 from app.database import Base
 from app.models import Job, JobMatch, UserProfile
 
-from .notifications import notify_qualifying_match
+from .notifications import notify_qualifying_match, notify_qualifying_match_detailed
 
 
 class NotificationTests(unittest.IsolatedAsyncioTestCase):
@@ -90,10 +90,13 @@ class NotificationTests(unittest.IsolatedAsyncioTestCase):
         match = self.make_match()
         sender = AsyncMock(side_effect=RuntimeError("temporary failure"))
         with patch("app.telegram.notifications.logger.exception"):
-            sent = await notify_qualifying_match(
+            result = await notify_qualifying_match_detailed(
                 self.db, self.profile, self.job, match, sender=sender
             )
-        self.assertFalse(sent)
+        self.assertTrue(result.eligible)
+        self.assertTrue(result.send_attempted)
+        self.assertFalse(result.send_success)
+        self.assertIn("RuntimeError: temporary failure", result.error)
         self.assertFalse(match.notified)
         self.assertIsNone(match.notified_at)
 

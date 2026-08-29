@@ -28,7 +28,7 @@ Minimum score + daily limit + not-already-notified checks
 Telegram notification → notified=True only after successful delivery
 ```
 
-The scheduler reads each enabled profile's own `search_interval_minutes`. A failed page, malformed JSON-LD document, invalid Groq response, or temporary Telegram problem is logged without stopping the rest of the cycle.
+The scheduler reads each enabled profile's own `search_interval_minutes`. At the end of every scheduled or manually requested search session, Telegram receives a counter summary for discovered, filtered, matched, rejected, attempted, sent, and failed notifications. This summary is operational reporting: it does not count toward `max_notifications_per_day` and does not mark a job as notified. A failed page, malformed JSON-LD document, invalid Groq response, or temporary Telegram problem is logged without stopping the rest of the cycle.
 
 ## Requirements
 
@@ -269,6 +269,16 @@ python -m app.matching.test_pipeline
 python -m app.telegram.test_notifications
 python -m app.test_worker
 ```
+
+Run one real cycle with exact counters (this uses live APIs and may send Telegram messages):
+
+```powershell
+python -m app.run_cycle --log-level INFO
+```
+
+Each candidate emits `JOB_PIPELINE_AUDIT` JSON containing its filter, match,
+and notification decisions. The final `PIPELINE_EXECUTION_RESULT` reports
+discovery, filtering, matching, rejection, and Telegram attempt counters.
 
 Run every test module together:
 

@@ -27,6 +27,7 @@ class TavilySearchProvider(SearchProvider):
         self,
         query: str,
         limit: int = 10,
+        time_range: str | None = None,
     ) -> list[SearchResult]:
 
         response = await asyncio.to_thread(
@@ -34,6 +35,7 @@ class TavilySearchProvider(SearchProvider):
             query=query,
             max_results=limit,
             search_depth="basic",
+            time_range=time_range,
         )
 
         results = []

@@ -2,6 +2,7 @@ def build_job_queries(
     target_titles: str,
     locations: str | None = None,
     remote_preference: str | None = None,
+    max_job_age_hours: int | None = None,
 ) -> list[str]:
 
     titles = [
@@ -21,6 +22,8 @@ def build_job_queries(
 
     queries = []
 
+    recency_phrase = _recency_phrase(max_job_age_hours)
+
     job_sites = [
         "boards.greenhouse.io",
         "jobs.lever.co",
@@ -34,7 +37,7 @@ def build_job_queries(
         for site in job_sites:
 
             queries.append(
-                f'"{title}" jobs site:{site}'
+                f'"{title}" jobs {recency_phrase} site:{site}'.replace("  ", " ")
             )
 
         if location_values:
@@ -42,7 +45,7 @@ def build_job_queries(
             for location in location_values:
 
                 queries.append(
-                    f'"{title}" "{location}" jobs'
+                    f'"{title}" "{location}" jobs {recency_phrase}'.strip()
                 )
 
         if remote_preference or any(
@@ -60,9 +63,21 @@ def build_job_queries(
             }:
 
                 queries.append(
-                    f'"{title}" remote jobs'
+                    f'"{title}" remote jobs {recency_phrase}'.strip()
                 )
 
     return list(
         dict.fromkeys(queries)
     )
+
+
+def _recency_phrase(max_job_age_hours: int | None) -> str:
+    if max_job_age_hours is None:
+        return ""
+    if max_job_age_hours <= 24:
+        return "posted today"
+    if max_job_age_hours <= 24 * 7:
+        return "posted this week"
+    if max_job_age_hours <= 24 * 31:
+        return "posted this month"
+    return "posted recently"

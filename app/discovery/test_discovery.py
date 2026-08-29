@@ -93,6 +93,22 @@ class DiscoveryExtractionTests(unittest.TestCase):
         self.assertEqual(extract_json_ld(html), [])
         self.assertIsNone(find_job_posting(extract_json_ld(html)))
 
+    def test_large_remote_country_list_is_normalized_to_worldwide(self) -> None:
+        countries = [
+            {"@type": "Country", "name": f"Country {index}"}
+            for index in range(20)
+        ]
+        posting = {
+            "@type": "JobPosting",
+            "title": "Backend Engineer",
+            "jobLocationType": "TELECOMMUTE",
+            "applicantLocationRequirements": countries,
+            "url": "https://jobs.example.com/apply/worldwide",
+        }
+        job = convert_job_posting(posting, "https://jobs.example.com/jobs/worldwide")
+        self.assertEqual(job.location, "Remote - Worldwide")
+        self.assertLessEqual(len(job.location), 500)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

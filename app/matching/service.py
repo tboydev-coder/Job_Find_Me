@@ -1,3 +1,6 @@
+import json
+import logging
+
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from .filter import meets_minimum_match
@@ -11,6 +14,9 @@ from .matcher import (
     analyze_job_match,
     calculate_match_score,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 def match_job(
@@ -54,6 +60,27 @@ def match_job(
         "salary": job.salary,
     }
 
+    logger.info(
+        "MATCH_REQUEST %s",
+        json.dumps(
+            {
+                "profile_id": profile_id,
+                "job_id": job.id,
+                "job_title": job.title,
+                "candidate_field_lengths": {
+                    key: len(value or "")
+                    for key, value in candidate_data.items()
+                },
+                "job_description_chars": len(job.description or ""),
+                "job_requirements_chars": len(job.requirements or ""),
+                "minimum_required": float(minimum_match),
+                "score_scale": "0-100 percentage",
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        ),
+    )
+
     analysis = analyze_job_match(
         candidate_profile=candidate_data,
         job=job_data,
@@ -66,6 +93,21 @@ def match_job(
     meets_threshold = meets_minimum_match(
         score=score,
         minimum_match=minimum_match,
+    )
+
+    logger.info(
+        "MATCH_RESPONSE %s",
+        json.dumps(
+            {
+                "profile_id": profile_id,
+                "job_id": job.id,
+                "match_score": score,
+                "minimum_required": float(minimum_match),
+                "match_passed": meets_threshold,
+                "score_scale": "0-100 percentage",
+            },
+            sort_keys=True,
+        ),
     )
 
     match = JobMatch(

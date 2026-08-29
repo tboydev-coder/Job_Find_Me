@@ -209,7 +209,9 @@ def extract_location(
     applicant_locations = _extract_locations(applicant_requirements)
 
     if is_remote:
-        if applicant_locations:
+        if len(applicant_locations) >= 10:
+            remote_values = ["Remote - Worldwide"]
+        elif applicant_locations:
             remote_values = [f"Remote - {item}" for item in applicant_locations]
         else:
             remote_values = ["Remote"]
@@ -222,7 +224,32 @@ def extract_location(
         item = " ".join(item.split()).strip(" ,-|")
         if item and item.lower() not in {"none", "null"}:
             clean_values.append(item[:500])
-    return " | ".join(dict.fromkeys(clean_values)) or None
+    return _fit_location_values(clean_values)
+
+
+def _fit_location_values(values: list[str], max_length: int = 500) -> str | None:
+    unique = list(dict.fromkeys(values))
+    if not unique:
+        return None
+    combined = " | ".join(unique)
+    if len(combined) <= max_length:
+        return combined
+
+    selected: list[str] = []
+    for index, value in enumerate(unique):
+        remaining = len(unique) - index - 1
+        suffix = f" | +{remaining} locations" if remaining else ""
+        candidate = " | ".join([*selected, value]) + suffix
+        if len(candidate) > max_length:
+            break
+        selected.append(value)
+    if not selected:
+        return unique[0][:max_length]
+    remaining = len(unique) - len(selected)
+    result = " | ".join(selected)
+    if remaining:
+        result += f" | +{remaining} locations"
+    return result[:max_length]
 
 
 def _extract_locations(value: Any) -> list[str]:
@@ -531,6 +558,8 @@ def is_job_listing_page(url: str) -> bool:
     }
     single_job_parameters = ("gh_jid=", "job_id=", "jobid=", "position_id=")
     if path in listing_paths and not any(key in query for key in single_job_parameters):
+        return True
+    if path.endswith(("+remote-jobs", "/remote-jobs", "+jobs")):
         return True
     if any(
         pattern in path

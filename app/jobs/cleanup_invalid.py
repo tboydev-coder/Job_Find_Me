@@ -5,6 +5,7 @@ import logging
 from urllib.parse import urlparse
 
 from app.database import SessionLocal
+from app.discovery.extractor import is_disallowed_job_url, is_job_listing_page
 from app.models import Job
 
 
@@ -41,6 +42,8 @@ def invalid_job_reason(job: Job) -> str | None:
     pattern = next((value for value in BAD_URL_PHRASES if value in url), None)
     if pattern:
         return f"listing/article URL: {pattern}"
+    if is_job_listing_page(url) or is_disallowed_job_url(url):
+        return "generic listing, article, or disallowed URL"
     if not (job.apply_url or "").lower().startswith(("http://", "https://")):
         return "invalid application URL"
     return None

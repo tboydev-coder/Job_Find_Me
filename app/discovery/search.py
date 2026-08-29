@@ -16,5 +16,6 @@ class SearchProvider(ABC):
         self,
         query: str,
         limit: int = 10,
+        time_range: str | None = None,
     ) -> list[SearchResult]:
         raise NotImplementedError
